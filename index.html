@@ -3,55 +3,74 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Кликер</title>
+<title>Кликер Планет</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);font-family:Arial;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none}
-#game-container{text-align:center;color:#fff;padding:20px;width:100%;max-width:400px;height:100vh;display:flex;flex-direction:column;justify-content:space-between}
-#top{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center}
-#score{font-size:60px;font-weight:bold;text-shadow:2px 2px 4px rgba(0,0,0,.5)}
-#per-click{font-size:18px;margin-top:10px;opacity:.8}
-#click-btn{width:250px;height:250px;border-radius:50%;background:linear-gradient(145deg,#f39c12,#e67e22);border:5px solid #d35400;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:80px;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .1s;touch-action:manipulation;margin:20px auto}
-#click-btn:active{transform:scale(.9)}
-#upgrade-cell{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);border-radius:15px;padding:15px;cursor:pointer;margin-bottom:20px;transition:all .3s;touch-action:manipulation}
-#upgrade-cell:active{background:rgba(255,255,255,.2)}
-#upgrade-name{font-size:20px;font-weight:bold}
-#upgrade-desc{font-size:14px;opacity:.8;margin-top:5px}
-#upgrade-cost{font-size:16px;color:#f1c40f;font-weight:bold;margin-top:5px}
-#floating-numbers{position:fixed;pointer-events:none;z-index:1000}
+body{background:linear-gradient(135deg,#0c0c1e 0%,#1a1a3e 100%);font-family:Arial;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#game-container{display:flex;width:100%;max-width:500px;height:100vh;position:relative}
+#click-area{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative}
+#planet-btn{width:300px;height:300px;border-radius:50%;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;transition:transform .1s;touch-action:manipulation;border:none;background:transparent}
+#planet-btn:active{transform:scale(.95)}
+#planet-emoji{font-size:150px;position:absolute;z-index:2}
+#clicks-display{position:absolute;z-index:3;font-size:40px;font-weight:bold;color:#fff;text-shadow:2px 2px 4px rgba(0,0,0,.8);background:rgba(0,0,0,.5);padding:10px 20px;border-radius:20px}
+#planet-name{position:absolute;bottom:-20px;font-size:20px;color:#fff;font-weight:bold}
+#menu-btn{position:absolute;left:10px;top:10px;z-index:100;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:10px;padding:10px;cursor:pointer;color:#fff;font-size:20px;touch-action:manipulation}
+#upgrade-menu{position:fixed;left:0;top:0;width:80%;height:100%;background:rgba(0,0,0,.95);z-index:1000;transform:translateX(-100%);transition:transform .3s;overflow-y:auto;padding:20px}
+#upgrade-menu.active{transform:translateX(0)}
+#close-menu{position:absolute;right:10px;top:10px;background:#e74c3c;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;color:#fff;font-size:20px}
+#menu-title{color:#fff;text-align:center;margin-bottom:20px;font-size:24px}
+.upgrade-item{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);border-radius:10px;padding:15px;margin-bottom:10px;cursor:pointer;color:#fff;transition:all .3s;touch-action:manipulation}
+.upgrade-item:active{background:rgba(255,255,255,.2)}
+.upgrade-name{font-size:18px;font-weight:bold}
+.upgrade-desc{font-size:14px;opacity:.8;margin-top:5px}
+.upgrade-cost{font-size:16px;color:#f1c40f;font-weight:bold;margin-top:5px}
+#floating-numbers{position:fixed;pointer-events:none;z-index:999}
 .floating{position:absolute;animation:floatUp 1s ease-out;font-weight:bold;font-size:30px;color:#f1c40f}
 @keyframes floatUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-100px)}}
 </style>
 </head>
 <body>
 <div id="game-container">
-<div id="top">
-<h1>💰 Кликер</h1>
-<div id="score">0</div>
-<div id="per-click">+1 за клик</div>
-<button id="click-btn">👆</button>
+<button id="menu-btn">☰</button>
+<div id="click-area">
+<button id="planet-btn">
+<span id="planet-emoji">🌍</span>
+<div id="clicks-display">0</div>
+<div id="planet-name">Земля</div>
+</button>
 </div>
-<div id="upgrade-cell">
-<div id="upgrade-name">Улучшить клик</div>
-<div id="upgrade-desc">+1 за клик</div>
-<div id="upgrade-cost">💰 10</div>
+<div id="upgrade-menu">
+<button id="close-menu">✕</button>
+<h2 id="menu-title">🛒 Улучшения</h2>
+<div id="upgrade-list"></div>
 </div>
 </div>
 <div id="floating-numbers"></div>
 
 <script>
-let score=0;
+let totalClicks=0;
 let perClick=1;
 let autoClick=0;
-let upgradeIndex=0;
 
 // Загрузка сохранения
-if(localStorage.getItem('clicker_score')){
-score=parseInt(localStorage.getItem('clicker_score'));
-perClick=parseInt(localStorage.getItem('clicker_perClick'))||1;
-autoClick=parseInt(localStorage.getItem('clicker_auto'))||0;
-upgradeIndex=parseInt(localStorage.getItem('clicker_upgradeIndex'))||0;
+if(localStorage.getItem('planet_clicker_clicks')){
+totalClicks=parseInt(localStorage.getItem('planet_clicker_clicks'));
+perClick=parseInt(localStorage.getItem('planet_clicker_perClick'))||1;
+autoClick=parseInt(localStorage.getItem('planet_clicker_auto'))||0;
 }
+
+const planets=[
+{name:'Меркурий',emoji:'🪨',min:0,max:1000},
+{name:'Венера',emoji:'🟠',min:1000,max:5000},
+{name:'Земля',emoji:'🌍',min:5000,max:15000},
+{name:'Марс',emoji:'🔴',min:15000,max:30000},
+{name:'Юпитер',emoji:'🟤',min:30000,max:60000},
+{name:'Сатурн',emoji:'🪐',min:60000,max:100000},
+{name:'Уран',emoji:'🔵',min:100000,max:150000},
+{name:'Нептун',emoji:'🔷',min:150000,max:250000},
+{name:'Плутон',emoji:'⚪',min:250000,max:500000},
+{name:'Черная дыра',emoji:'⚫',min:500000,max:Infinity}
+];
 
 const upgrades=[
 {name:'Улучшить клик',desc:'+1 за клик',cost:10,effect:()=>{perClick++}},
@@ -66,42 +85,56 @@ const upgrades=[
 {name:'Максимум',desc:'Всё x10',cost:100000,effect:()=>{perClick*=10;autoClick*=10}}
 ];
 
+function getCurrentPlanet(){
+for(let i=0;i<planets.length;i++){
+if(totalClicks>=planets[i].min&&totalClicks<planets[i].max){
+return planets[i];
+}
+}
+return planets[planets.length-1];
+}
+
+function updatePlanet(){
+const planet=getCurrentPlanet();
+document.getElementById('planet-emoji').textContent=planet.emoji;
+document.getElementById('planet-name').textContent=planet.name;
+}
+
 function updateUI(){
-document.getElementById('score').textContent=score;
-document.getElementById('per-click').textContent='+'+perClick+' за клик'+(autoClick>0?' + '+autoClick+'/сек':'');
-updateUpgradeCell();
+document.getElementById('clicks-display').textContent=totalClicks;
+updatePlanet();
+renderUpgrades();
 }
 
-function updateUpgradeCell(){
-if(upgradeIndex<upgrades.length){
-const upgrade=upgrades[upgradeIndex];
-document.getElementById('upgrade-name').textContent=upgrade.name;
-document.getElementById('upgrade-desc').textContent=upgrade.desc;
-document.getElementById('upgrade-cost').textContent='💰 '+upgrade.cost;
-}else{
-document.getElementById('upgrade-name').textContent='Всё куплено!';
-document.getElementById('upgrade-desc').textContent='Вы максимально прокачаны';
-document.getElementById('upgrade-cost').textContent='🎉';
-}
+function renderUpgrades(){
+const list=document.getElementById('upgrade-list');
+list.innerHTML='';
+upgrades.forEach((upgrade,index)=>{
+const div=document.createElement('div');
+div.className='upgrade-item';
+div.innerHTML=`
+<div class="upgrade-name">${upgrade.name}</div>
+<div class="upgrade-desc">${upgrade.desc}</div>
+<div class="upgrade-cost">💰 ${upgrade.cost}</div>
+`;
+div.onclick=()=>buyUpgrade(index);
+list.appendChild(div);
+});
 }
 
-function buyUpgrade(){
-if(upgradeIndex>=upgrades.length)return;
-const upgrade=upgrades[upgradeIndex];
-if(score>=upgrade.cost){
-score-=upgrade.cost;
+function buyUpgrade(index){
+const upgrade=upgrades[index];
+if(totalClicks>=upgrade.cost){
+totalClicks-=upgrade.cost;
 upgrade.effect();
 upgrade.cost=Math.floor(upgrade.cost*1.5);
-if(upgradeIndex===upgrades.length-1||upgrade.cost>score){
-upgradeIndex++;
-}
 updateUI();
 saveGame();
 }
 }
 
 function clickHandler(e){
-score+=perClick;
+totalClicks+=perClick;
 createFloatingNumber(e);
 updateUI();
 saveGame();
@@ -118,29 +151,38 @@ setTimeout(()=>floating.remove(),1000);
 }
 
 function saveGame(){
-localStorage.setItem('clicker_score',score);
-localStorage.setItem('clicker_perClick',perClick);
-localStorage.setItem('clicker_auto',autoClick);
-localStorage.setItem('clicker_upgradeIndex',upgradeIndex);
+localStorage.setItem('planet_clicker_clicks',totalClicks);
+localStorage.setItem('planet_clicker_perClick',perClick);
+localStorage.setItem('planet_clicker_auto',autoClick);
 }
 
 // Обработчики
-document.getElementById('click-btn').addEventListener('click',clickHandler);
-document.getElementById('click-btn').addEventListener('touchstart',(e)=>{
+document.getElementById('planet-btn').addEventListener('click',clickHandler);
+document.getElementById('planet-btn').addEventListener('touchstart',(e)=>{
 e.preventDefault();
 clickHandler(e.touches[0]);
 });
 
-document.getElementById('upgrade-cell').addEventListener('click',buyUpgrade);
-document.getElementById('upgrade-cell').addEventListener('touchstart',(e)=>{
+document.getElementById('menu-btn').addEventListener('click',()=>{
+document.getElementById('upgrade-menu').classList.add('active');
+});
+document.getElementById('menu-btn').addEventListener('touchstart',(e)=>{
 e.preventDefault();
-buyUpgrade();
+document.getElementById('upgrade-menu').classList.add('active');
+});
+
+document.getElementById('close-menu').addEventListener('click',()=>{
+document.getElementById('upgrade-menu').classList.remove('active');
+});
+document.getElementById('close-menu').addEventListener('touchstart',(e)=>{
+e.preventDefault();
+document.getElementById('upgrade-menu').classList.remove('active');
 });
 
 // Автоклик
 setInterval(()=>{
 if(autoClick>0){
-score+=autoClick;
+totalClicks+=autoClick;
 updateUI();
 saveGame();
 }
