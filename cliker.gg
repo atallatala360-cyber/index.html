@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Кликер</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);font-family:Arial;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#game-container{text-align:center;color:#fff;padding:20px;width:100%;max-width:400px}
+#score{font-size:48px;font-weight:bold;margin-bottom:10px;text-shadow:2px 2px 4px rgba(0,0,0,.5)}
+#per-click{font-size:18px;margin-bottom:20px;opacity:.8}
+#click-btn{width:200px;height:200px;border-radius:50%;background:linear-gradient(145deg,#f39c12,#e67e22);border:5px solid #d35400;cursor:pointer;margin:20px auto;display:flex;align-items:center;justify-content:center;font-size:60px;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .1s;touch-action:manipulation}
+#click-btn:active{transform:scale(.9)}
+#upgrades{margin-top:20px;display:flex;flex-direction:column;gap:10px}
+.upgrade-btn{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:10px;padding:15px;cursor:pointer;color:#fff;font-size:16px;transition:all .3s;touch-action:manipulation}
+.upgrade-btn:active{background:rgba(255,255,255,.4)}
+.upgrade-btn .cost{color:#f1c40f;font-weight:bold}
+#floating-numbers{position:fixed;pointer-events:none;z-index:1000}
+.floating{position:absolute;animation:floatUp 1s ease-out;font-weight:bold;font-size:24px;color:#f1c40f}
+@keyframes floatUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-100px)}}
+</style>
+</head>
+<body>
+<div id="game-container">
+<h1>💰 Кликер</h1>
+<div id="score">0</div>
+<div id="per-click">+1 за клик</div>
+<button id="click-btn">👆</button>
+<div id="upgrades"></div>
+</div>
+<div id="floating-numbers"></div>
+
+<script>
+let score=0;
+let perClick=1;
+let autoClick=0;
+
+// Загрузка сохранения
+if(localStorage.getItem('clicker_score')){
+score=parseInt(localStorage.getItem('clicker_score'));
+perClick=parseInt(localStorage.getItem('clicker_perClick'))||1;
+autoClick=parseInt(localStorage.getItem('clicker_auto'))||0;
+}
+
+const upgrades=[
+{name:'Улучшить клик',desc:'+1 за клик',cost:10,effect:()=>{perClick++}},
+{name:'Автокликер',desc:'+1 в секунду',cost:50,effect:()=>{autoClick++}},
+{name:'Мега клик',desc:'+10 за клик',cost:200,effect:()=>{perClick+=10}},
+{name:'Супер автокликер',desc:'+10 в секунду',cost:500,effect:()=>{autoClick+=10}},
+{name:'Ультра клик',desc:'+100 за клик',cost:2000,effect:()=>{perClick+=100}},
+{name:'Мега буст',desc:'x2 за клик',cost:5000,effect:()=>{perClick*=2}}
+];
+
+function updateUI(){
+document.getElementById('score').textContent=score;
+document.getElementById('per-click').textContent='+'+perClick+' за клик'+(autoClick>0?' + '+autoClick+'/сек':'');
+renderUpgrades();
+}
+
+function renderUpgrades(){
+const container=document.getElementById('upgrades');
+container.innerHTML='';
+upgrades.forEach((upgrade,index)=>{
+const btn=document.createElement('button');
+btn.className='upgrade-btn';
+btn.innerHTML=upgrade.name+'<br>'+upgrade.desc+'<br><span class="cost">💰 '+upgrade.cost+'</span>';
+btn.onclick=()=>buyUpgrade(index);
+container.appendChild(btn);
+});
+}
+
+function buyUpgrade(index){
+const upgrade=upgrades[index];
+if(score>=upgrade.cost){
+score-=upgrade.cost;
+upgrade.effect();
+upgrade.cost=Math.floor(upgrade.cost*1.5);
+updateUI();
+saveGame();
+}
+}
+
+function clickHandler(e){
+score+=perClick;
+createFloatingNumber(e);
+updateUI();
+saveGame();
+}
+
+function createFloatingNumber(e){
+const floating=document.createElement('div');
+floating.className='floating';
+floating.textContent='+'+perClick;
+floating.style.left=e.clientX+'px';
+floating.style.top=e.clientY+'px';
+document.getElementById('floating-numbers').appendChild(floating);
+setTimeout(()=>floating.remove(),1000);
+}
+
+function saveGame(){
+localStorage.setItem('clicker_score',score);
+localStorage.setItem('clicker_perClick',perClick);
+localStorage.setItem('clicker_auto',autoClick);
+}
+
+// Обработчики
+document.getElementById('click-btn').addEventListener('click',clickHandler);
+document.getElementById('click-btn').addEventListener('touchstart',(e)=>{
+e.preventDefault();
+clickHandler(e.touches[0]);
+});
+
+// Автоклик
+setInterval(()=>{
+if(autoClick>0){
+score+=autoClick;
+updateUI();
+saveGame();
+}
+},1000);
+
+updateUI();
+</script>
+</body>
+</html>
